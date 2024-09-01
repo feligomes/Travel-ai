@@ -104,12 +104,21 @@ export async function POST(req: NextRequest) {
     }
     console.log("Itinerary saved successfully");
 
-    return NextResponse.json({ itinerary: parsedItinerary });
+    const response = NextResponse.json({ itinerary: parsedItinerary });
+    
+    // Add cache control headers
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    
+    return response;
   } catch (error : any) {
-    console.error("OpenAI API error:", error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { error: "Failed to generate itinerary", details: error.message },
       { status: 500 }
     );
+    
+    // Add cache control headers to error response as well
+    errorResponse.headers.set('Cache-Control', 'no-store, max-age=0');
+    
+    return errorResponse;
   }
 }
