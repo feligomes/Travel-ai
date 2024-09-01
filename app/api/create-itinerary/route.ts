@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     console.log("Itinerary saved successfully");
 
     return NextResponse.json({ itinerary: parsedItinerary });
-  } catch (error) {
+  } catch (error : any) {
     console.error("OpenAI API error:", error);
     return NextResponse.json(
       { error: "Failed to generate itinerary", details: error.message },
