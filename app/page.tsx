@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
-import { PlusCircle, MinusCircle, Plane, Calendar, Users, Utensils, Clock } from "lucide-react"
+import { PlusCircle, MinusCircle, Plane, Calendar, Users, Clock } from "lucide-react"
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Label } from "./components/ui/label"
@@ -219,7 +219,7 @@ export default function TravelPlannerPage() {
                   onCheckedChange={(checked) => setPreferences({...preferences, food: checked})}
                 />
                 <Label htmlFor="food">
-                  <Utensils className="inline mr-1 text-primary" /> Food
+                  🍽️ Food
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
