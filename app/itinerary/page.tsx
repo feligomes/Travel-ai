@@ -1,38 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function Itinerary() {
+function ItineraryContent() {
   const [itinerary, setItinerary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
   const searchParams = useSearchParams();
 
-  const generateItinerary = async () => {
-    const destination = searchParams.get('destination');
-    const days = searchParams.get('days');
+  useEffect(() => {
+    const generateItinerary = async () => {
+      const destination = searchParams.get('destination');
+      const days = searchParams.get('days');
 
-    if (destination && days) {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/generate-itinerary', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ destination, days }),
-        });
-        const data = await response.json();
-        setItinerary(data.itinerary);
-        setIsFallback(data.fallback || false);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
+      if (destination && days) {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/generate-itinerary', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ destination, days }),
+          });
+          const data = await response.json();
+          setItinerary(data.itinerary);
+          setIsFallback(data.fallback || false);
+        } catch (error) {
+          console.error('Error:', error);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-  };
+    };
+
+    generateItinerary();
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -45,14 +49,6 @@ export default function Itinerary() {
   return (
     <div className="container mx-auto px-4 py-8 bg-background text-foreground">
       <h1 className="text-3xl font-semibold mb-6 text-foreground">Your Itinerary</h1>
-      {!itinerary && (
-        <button 
-          onClick={generateItinerary} 
-          className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
-        >
-          Generate Itinerary
-        </button>
-      )}
       {isFallback && (
         <p className="text-destructive my-4">Note: This is a generic itinerary due to temporary AI service limitations.</p>
       )}
@@ -61,8 +57,16 @@ export default function Itinerary() {
           <pre className="whitespace-pre-wrap">{itinerary}</pre>
         </div>
       ) : (
-        <p className="mt-4 text-muted-foreground">Click the button to generate your itinerary.</p>
+        <p className="mt-4 text-muted-foreground">No itinerary generated yet.</p>
       )}
     </div>
+  );
+}
+
+export default function Itinerary() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ItineraryContent />
+    </Suspense>
   );
 }

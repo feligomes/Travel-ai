@@ -1,202 +1,248 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Button, TextField, Autocomplete, Chip, CircularProgress, Typography, Box } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
 
-const initialDestinations = ['Paris', 'Tokyo', 'New York', 'London', 'Rome', 'Sydney']
+import * as React from "react"
+import { useState } from "react"
+import { PlusCircle, MinusCircle, Plane, Calendar, Users, Utensils, Clock } from "lucide-react"
+import { Button } from "./components/ui/button"
+import { Input } from "./components/ui/input"
+import { Label } from "./components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
+import { Switch } from "./components/ui/switch"
+import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./components/ui/command"
+import { popularDestinations } from "./constants/destinations"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "../lib/utils"
 
-const loadingPhrases = [
-  "Finding the best local cuisines...",
-  "Discovering hidden gems...",
-  "Planning exciting adventures...",
-  "Locating Instagram-worthy spots...",
-  "Uncovering local secrets...",
-  "Crafting unforgettable moments...",
-  "Mapping out the perfect route...",
-  "Selecting the coziest accommodations...",
-  "Timing your visit for local festivals...",
-  "Curating unique experiences..."
-]
+interface Activity {
+  time: string;
+  description: string;
+}
 
 interface ItineraryDay {
   day: number;
-  date: string;
   location: string;
-  activities: {
-    time: string;
-    description: string;
-  }[];
+  activities: Activity[];
 }
 
-export default function Home() {
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>([])
-  const [availableDestinations, setAvailableDestinations] = useState<string[]>(initialDestinations)
-  const [days, setDays] = useState<string>('')
-  const [itinerary, setItinerary] = useState<ItineraryDay[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [loadingPhrase, setLoadingPhrase] = useState<string>('')
-  const [inputValue, setInputValue] = useState('')
+export default function TravelPlannerPage() {
+  const [destinations, setDestinations] = useState<string[]>([""])
+  const [numDays, setNumDays] = useState("")
+  const [preferences, setPreferences] = useState({
+    food: false,
+    culture: false,
+    nightlife: false
+  })
+  const [itinerary, setItinerary] = useState<ItineraryDay[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [isFallback, setIsFallback] = useState(false)
+  const [openAutocomplete, setOpenAutocomplete] = useState(-1)
+  const [value, setValue] = React.useState("")
+  const [selectedDestinations, setSelectedDestinations] = useState<Set<string>>(new Set())
+  const [travelerType, setTravelerType] = useState("")
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (loading) {
-      let index = 0
-      interval = setInterval(() => {
-        setLoadingPhrase(loadingPhrases[index])
-        index = (index + 1) % loadingPhrases.length
-      }, 3000) // Change phrase every 3 seconds
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [loading])
-
-  const handleAdd = (event: React.SyntheticEvent, value: string | null) => {
-    if (value && !selectedDestinations.includes(value)) {
-      setSelectedDestinations([...selectedDestinations, value])
-      setAvailableDestinations(availableDestinations.filter(dest => dest !== value))
-      setInputValue('') // Clear the input after selection
-    }
+  const addDestination = () => {
+    setDestinations([...destinations, ""])
   }
 
-  const handleDelete = (destinationToDelete: string) => {
-    setSelectedDestinations(selectedDestinations.filter(dest => dest !== destinationToDelete))
-    setAvailableDestinations([...availableDestinations, destinationToDelete])
+  const removeDestination = (index: number) => {
+    const newDestinations = destinations.filter((_, i) => i !== index)
+    setDestinations(newDestinations)
   }
 
-  const handleCreate = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/create-itinerary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          destinations: selectedDestinations,
-          days: parseInt(days) || undefined,
-          prompt: `Create a travel itinerary for ${selectedDestinations.join(', ')} for ${days} days. Provide the itinerary as an array of day objects, where each day object has the following structure:
-          {
-            "day": number,
-            "date": "YYYY-MM-DD",
-            "location": "City, Country",
-            "activities": [
-              {
-                "time": "Morning",
-                "description": "Activity description"
-              },
-              {
-                "time": "Afternoon",
-                "description": "Activity description"
-              },
-              {
-                "time": "Evening",
-                "description": "Activity description"
-              }
-            ]
-          }`
-        }),
-      });
-      const data = await response.json();
-      console.log('API response:', data);
-      if (data.itinerary && Array.isArray(data.itinerary)) {
-        setItinerary(data.itinerary);
-      } else {
-        console.error('Invalid itinerary data:', data);
-        setItinerary([]);
+  const updateDestination = (index: number, value: string) => {
+    const newDestinations = [...destinations]
+    const oldValue = newDestinations[index]
+    newDestinations[index] = value
+    setDestinations(newDestinations)
+
+    // Update the set of selected destinations
+    setSelectedDestinations(prev => {
+      const newSet = new Set(prev)
+      if (oldValue) newSet.delete(oldValue)
+      if (value) newSet.add(value)
+      return newSet
+    })
+  }
+
+  const generateItinerary = async () => {
+    if (destinations[0] && numDays) {
+      setLoading(true)
+      try {
+        const response = await fetch('/api/create-itinerary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            destinations: destinations, 
+            days: numDays,
+            preferences: preferences,
+            travelerType: travelerType
+          }),
+        })
+        const data = await response.json()
+        setItinerary(data.itinerary)
+        setIsFallback(data.fallback || false)
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error creating itinerary:', error);
-      setItinerary([]);
     }
-    setLoading(false);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-6">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl overflow-hidden">
-        <div className="p-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Travel Itinerary Planner</h1>
-          <p className="text-xl text-gray-600 mb-8">Plan your perfect trip with AI</p>
-          <Autocomplete
-            options={availableDestinations}
-            renderInput={(params) => (
-              <TextField 
-                {...params} 
-                label="Add a destination" 
-                variant="outlined" 
-                className="bg-white rounded-lg mb-4"
-              />
-            )}
-            onChange={handleAdd}
-            value={null}
-            inputValue={inputValue}
-            onInputChange={(event, newInputValue) => {
-              setInputValue(newInputValue)
-            }}
-          />
-          <TextField
-            label="Number of days"
-            type="number"
-            value={days}
-            onChange={(e) => setDays(e.target.value)}
-            variant="outlined"
-            className="bg-white rounded-lg mb-4"
-            fullWidth
-          />
-          {selectedDestinations.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">Selected Destinations:</h3>
-              <div className="flex flex-wrap">
-                {selectedDestinations.map(dest => (
-                  <Chip
-                    key={dest}
-                    label={dest}
-                    onDelete={() => handleDelete(dest)}
-                    deleteIcon={<CloseIcon />}
-                    className="m-1 bg-purple-200 text-purple-800"
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground">
+      <div className="bg-card text-card-foreground rounded-[var(--radius)] shadow-xl p-6 w-full max-w-2xl">
+        <h1 className="text-3xl font-bold mb-2">Travel Itinerary Planner</h1>
+        <p className="mb-6 text-muted-foreground">Plan your perfect trip with AI assistance</p>
+        
+        <div className="space-y-4">
+          {destinations.map((dest, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <Plane className="text-primary" />
+              <Popover open={openAutocomplete === index} onOpenChange={(open: boolean) => setOpenAutocomplete(open ? index : -1)}>
+                <PopoverTrigger asChild>
+                  <Input
+                    type="text"
+                    placeholder={`Destination ${index + 1}`}
+                    value={dest}
+                    onChange={(e) => updateDestination(index, e.target.value)}
+                    className="flex-grow"
                   />
-                ))}
+                </PopoverTrigger>
+                <PopoverContent className="p-0" align="start">
+                  <Command className="bg-popover">
+                    <CommandInput placeholder="Search destinations..." />
+                    <CommandList>
+                      <CommandEmpty>No destination found.</CommandEmpty>
+                      <CommandGroup>
+                        {popularDestinations
+                          .filter(destination => !selectedDestinations.has(destination.label))
+                          .map((destination) => (
+                            <CommandItem
+                              key={destination.value}
+                              value={destination.value}
+                              onSelect={() => {
+                                updateDestination(index, destination.label)
+                                setOpenAutocomplete(-1)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  dest === destination.label ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {destination.label}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {index === destinations.length - 1 ? (
+                <Button onClick={addDestination} variant="outline">
+                  <PlusCircle className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={() => removeDestination(index)} variant="outline">
+                  <MinusCircle className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+          
+          <div className="flex items-center space-x-2">
+            <Calendar className="text-primary" />
+            <Input
+              type="number"
+              placeholder="Number of days"
+              value={numDays}
+              onChange={(e) => setNumDays(e.target.value)}
+              className="flex-grow"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="travelerType">Traveler Type</Label>
+            <Select onValueChange={(value) => setTravelerType(value)}>
+              <SelectTrigger id="travelerType">
+                <SelectValue placeholder="Select traveler type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solo">Solo</SelectItem>
+                <SelectItem value="couple">Couple</SelectItem>
+                <SelectItem value="family">Family</SelectItem>
+                <SelectItem value="group">Group</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Travel Preferences</Label>
+            <div className="flex space-x-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="food"
+                  checked={preferences.food}
+                  onCheckedChange={(checked) => setPreferences({...preferences, food: checked})}
+                />
+                <Label htmlFor="food">
+                  <Utensils className="inline mr-1 text-primary" /> Food
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="culture"
+                  checked={preferences.culture}
+                  onCheckedChange={(checked) => setPreferences({...preferences, culture: checked})}
+                />
+                <Label htmlFor="culture">🏛️ Culture</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="nightlife"
+                  checked={preferences.nightlife}
+                  onCheckedChange={(checked) => setPreferences({...preferences, nightlife: checked})}
+                />
+                <Label htmlFor="nightlife">🌙 Nightlife</Label>
               </div>
             </div>
-          )}
+          </div>
         </div>
-        <div className="px-8 pb-8">
-          <Button 
-            variant="contained" 
-            fullWidth 
-            onClick={handleCreate}
-            disabled={selectedDestinations.length === 0 || loading || !days}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            {loading ? 'Creating Itinerary...' : 'Create Itinerary'}
-          </Button>
-          {loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
-              <CircularProgress size={24} sx={{ mr: 2 }} />
-              <Typography variant="body2" color="text.secondary">
-                {loadingPhrase}
-              </Typography>
-            </Box>
-          )}
-        </div>
-        {itinerary.length > 0 && (
-          <div className="px-8 pb-8">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">Your Itinerary:</h3>
+        
+        <Button className="w-full mt-6" onClick={generateItinerary} disabled={loading}>
+          {loading ? "Generating Itinerary..." : "Create Itinerary"}
+        </Button>
+
+        {isFallback && (
+          <p className="text-destructive my-4">Note: This is a generic itinerary due to temporary AI service limitations.</p>
+        )}
+
+        {itinerary && (
+          <div className="mt-6 p-6 bg-card text-card-foreground rounded-lg shadow-md">
+            <h2 className="text-2xl font-semibold mb-4">Your Itinerary</h2>
             {itinerary.map((day) => (
-              <Box key={day.day} className="mb-6 bg-gray-50 p-4 rounded-lg">
-                <Typography variant="h6" className="font-bold text-purple-700 mb-2">
-                  Day {day.day}: {day.location}
-                </Typography>
-                {day.activities.map((activity, index) => (
-                  <Typography key={index} variant="body1" className="ml-4 mb-2">
-                    <span className="font-semibold text-purple-600">{activity.time}:</span> {activity.description}
-                  </Typography>
-                ))}
-              </Box>
+              <div key={day.day} className="mb-6">
+                <h3 className="text-xl font-semibold mb-2">Day {day.day}: {day.location}</h3>
+                <ul className="space-y-2">
+                  {day.activities.map((activity, index) => (
+                    <li key={index} className="flex items-start">
+                      <Clock className="mr-2 h-5 w-5 text-primary" />
+                      <div>
+                        <span className="font-semibold">{activity.time}</span> - {activity.description}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }
