@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock } from 'lucide-react'
 import { Button } from '../../components/ui/button'
+import { ItinerarySkeleton } from '../../components/ItinerarySkeleton'
 
 interface Activity {
   time: string;
@@ -41,7 +42,16 @@ export default function ItineraryPage({ params }: { params: { id: string } }) {
   }, [params.id])
 
   if (!itinerary) {
-    return <div>Loading...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground">
+        <div className="bg-card text-card-foreground rounded-[var(--radius)] shadow-xl p-6 w-full max-w-2xl">
+          <Button variant="outline" onClick={() => router.push('/')} className="mb-4">
+            Back to Planner
+          </Button>
+          <ItinerarySkeleton />
+        </div>
+      </div>
+    )
   }
 
   return (

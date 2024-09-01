@@ -26,3 +26,23 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+    const { error } = await supabaseAdmin
+      .from('itineraries')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting itinerary:", error);
+    return NextResponse.json(
+      { error: "Failed to delete itinerary" },
+      { status: 500 }
+    );
+  }
+}

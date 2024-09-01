@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
-import { PlusCircle, MinusCircle, Plane, Calendar, Users, Clock } from "lucide-react"
+import { PlusCircle, MinusCircle, Plane, Calendar, Users, Clock, X } from "lucide-react"
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Label } from "./components/ui/label"
@@ -116,6 +116,28 @@ export default function TravelPlannerPage() {
       console.error('Error fetching saved itineraries:', error)
     }
   }
+
+  const deleteItinerary = async (id: string) => {
+    try {
+      const response = await fetch('/api/itineraries', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+      if (response.ok) {
+        // Remove the deleted itinerary from the state
+        setSavedItineraries(prevItineraries => 
+          prevItineraries.filter(itinerary => itinerary.id !== id)
+        );
+      } else {
+        console.error('Failed to delete itinerary');
+      }
+    } catch (error) {
+      console.error('Error deleting itinerary:', error);
+    }
+  };
 
   useEffect(() => {
     fetchSavedItineraries()
@@ -286,13 +308,21 @@ export default function TravelPlannerPage() {
             <h2 className="text-2xl font-semibold mb-4">Saved Itineraries</h2>
             <ul className="space-y-2">
               {savedItineraries.map((itinerary) => (
-                <li key={itinerary.id}>
+                <li key={itinerary.id} className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     onClick={() => router.push(`/itinerary/${itinerary.id}`)}
-                    className="w-full text-left"
+                    className="flex-grow text-left"
                   >
                     {itinerary.destinations.join(', ')} - {itinerary.num_days} days
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteItinerary(itinerary.id)}
+                    className="text-destructive"
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
                 </li>
               ))}
