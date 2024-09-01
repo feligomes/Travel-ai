@@ -3,5 +3,16 @@
       "app/api/create-itinerary/route.ts": {
         "maxDuration": 60
       }
-    }
+    },
+    "routes": [
+      {
+        "src": "/api/create-itinerary",
+        "headers": {
+          "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "pragma": "no-cache",
+          "expires": "0",
+          "surrogate-control": "no-store"
+        }
+      }
+    ]
   }

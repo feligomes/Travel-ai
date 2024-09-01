@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,10 +12,19 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  console.log("POST request received");
+  console.log('Full request:', req);
+  console.log('Request headers:', Object.fromEntries(req.headers));
+  
+  const timestamp = Date.now();
+  console.log(`POST request received at ${timestamp}`);
   const body = await req.json();
   const { destinations, days, preferences, travelerType } = body;
-  console.log("Request body:", { destinations, days, preferences, travelerType });
+  console.log("Request body:", {
+    destinations,
+    days,
+    preferences,
+    travelerType,
+  });
 
   if (
     !destinations ||
@@ -28,7 +37,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const prompt = `Create a ${days}-day itinerary for a ${travelerType} traveler visiting ${destinations.join(", ")}. 
+  const prompt = `Create a ${days}-day itinerary for a ${travelerType} traveler visiting ${destinations.join(
+    ", "
+  )}. 
     Preferences: ${Object.entries(preferences)
       .filter(([_, value]) => value)
       .map(([key]) => key)
@@ -61,9 +72,8 @@ export async function POST(req: NextRequest) {
 
     try {
       console.log("Attempting to parse itinerary JSON");
-      const cleanedResponse = itineraryResponse
-        ?.replace(/```json\n?|\n?```/g, "")
-        .trim() ?? "";
+      const cleanedResponse =
+        itineraryResponse?.replace(/```json\n?|\n?```/g, "").trim() ?? "";
       console.log("Cleaned response:", cleanedResponse);
       const jsonArray =
         cleanedResponse.startsWith("[") && cleanedResponse.endsWith("]")
@@ -85,40 +95,49 @@ export async function POST(req: NextRequest) {
 
     console.log("Saving itinerary to Supabase");
     const { data: savedItinerary, error: saveError } = await supabaseAdmin
-      .from('itineraries')
+      .from("itineraries")
       .insert({
         destinations,
         num_days: parseInt(days),
         preferences,
         traveler_type: travelerType,
-        days: parsedItinerary
+        days: parsedItinerary,
       })
       .select();
 
     if (saveError) {
       console.error("Error saving to Supabase:", saveError);
-      return NextResponse.json({ 
+      return NextResponse.json({
         itinerary: parsedItinerary,
-        saveError: "Failed to save itinerary to database"
+        saveError: "Failed to save itinerary to database",
       });
     }
     console.log("Itinerary saved successfully");
 
-    const response = NextResponse.json({ itinerary: parsedItinerary });
-    
-    // Add cache control headers
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
-    
+    const response = NextResponse.json({ 
+      itinerary: parsedItinerary,
+      timestamp: timestamp  // Include the timestamp in the response
+    });
+
+    // Add more aggressive cache control headers
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+
     return response;
-  } catch (error : any) {
+  } catch (error: any) {
     const errorResponse = NextResponse.json(
       { error: "Failed to generate itinerary", details: error.message },
       { status: 500 }
     );
-    
-    // Add cache control headers to error response as well
-    errorResponse.headers.set('Cache-Control', 'no-store, max-age=0');
-    
+
+    // Add the same headers to error response
+    errorResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    errorResponse.headers.set('Pragma', 'no-cache');
+    errorResponse.headers.set('Expires', '0');
+    errorResponse.headers.set('Surrogate-Control', 'no-store');
+
     return errorResponse;
   }
 }
