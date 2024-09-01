@@ -12,13 +12,16 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  console.log("POST request received");
   const body = await req.json();
   const { destinations, days, preferences, travelerType } = body;
+  console.log("Request body:", { destinations, days, preferences, travelerType });
 
   if (
     !destinations ||
     (Array.isArray(destinations) && destinations.length === 0)
   ) {
+    console.log("Missing destinations, returning 400");
     return NextResponse.json(
       { error: "Missing destinations" },
       { status: 400 }
@@ -31,8 +34,10 @@ export async function POST(req: NextRequest) {
       .map(([key]) => key)
       .join(", ")}. 
     Provide detailed daily activities and recommendations.`;
+  console.log("Generated prompt:", prompt);
 
   try {
+    console.log("Calling OpenAI API");
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -47,6 +52,7 @@ export async function POST(req: NextRequest) {
       temperature: 0.7,
       top_p: 0.9,
     });
+    console.log("OpenAI API call completed");
 
     const itineraryResponse = completion.choices[0].message.content;
     console.log("Raw OpenAI response:", itineraryResponse);
@@ -54,15 +60,18 @@ export async function POST(req: NextRequest) {
     let parsedItinerary;
 
     try {
-      // Remove any potential markdown code block formatting and ensure it starts and ends with square brackets
+      console.log("Attempting to parse itinerary JSON");
       const cleanedResponse = itineraryResponse
         ?.replace(/```json\n?|\n?```/g, "")
         .trim() ?? "";
+      console.log("Cleaned response:", cleanedResponse);
       const jsonArray =
         cleanedResponse.startsWith("[") && cleanedResponse.endsWith("]")
           ? cleanedResponse
           : `[${cleanedResponse}]`;
+      console.log("JSON array to parse:", jsonArray);
       parsedItinerary = JSON.parse(jsonArray);
+      console.log("Successfully parsed itinerary JSON");
     } catch (parseError) {
       console.error("Failed to parse itinerary JSON:", parseError);
       return NextResponse.json(
@@ -74,7 +83,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // After successfully parsing the itinerary, save it to Supabase
+    console.log("Saving itinerary to Supabase");
     const { data: savedItinerary, error: saveError } = await supabaseAdmin
       .from('itineraries')
       .insert({
@@ -83,24 +92,23 @@ export async function POST(req: NextRequest) {
         preferences,
         traveler_type: travelerType,
         days: parsedItinerary
-        // Remove the user_id field
       })
-      .select()
+      .select();
 
     if (saveError) {
       console.error("Error saving to Supabase:", saveError);
-      // Return the error along with the generated itinerary
       return NextResponse.json({ 
         itinerary: parsedItinerary,
         saveError: "Failed to save itinerary to database"
       });
     }
+    console.log("Itinerary saved successfully");
 
     return NextResponse.json({ itinerary: parsedItinerary });
   } catch (error) {
     console.error("OpenAI API error:", error);
     return NextResponse.json(
-      { error: "Failed to generate itinerary" },
+      { error: "Failed to generate itinerary", details: error.message },
       { status: 500 }
     );
   }
