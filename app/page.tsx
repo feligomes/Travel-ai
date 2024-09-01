@@ -90,7 +90,8 @@ export default function TravelPlannerPage() {
             destinations: destinations, 
             days: numDays,
             preferences: preferences,
-            travelerType: travelerType
+            travelerType: travelerType,
+            timestamp: Date.now()  // Add this line
           }),
         })
         const data = await response.json()
