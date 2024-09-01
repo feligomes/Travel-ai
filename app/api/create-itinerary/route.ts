@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
+// Add this line at the top of the file
+export const fetchCache = 'force-no-store';
+
 // Initialize OpenAI and Supabase clients
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const supabaseAdmin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -80,22 +83,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ itinerary: parsedItinerary, saveError: "Failed to save itinerary to database" }, { status: 500 });
     }
 
-    const response = NextResponse.json({ itinerary: parsedItinerary, timestamp });
-    // Set Cache-Control headers
-    setCacheControlHeaders(response);
-    return response;
+    return NextResponse.json({ itinerary: parsedItinerary, timestamp });
   } catch (error: any) {
     console.error("Error processing request:", error.message);
-    const errorResponse = NextResponse.json({ error: "Failed to generate itinerary", details: error.message }, { status: 500 });
-    setCacheControlHeaders(errorResponse);
-    return errorResponse;
+    return NextResponse.json({ error: "Failed to generate itinerary", details: error.message }, { status: 500 });
   }
 }
-
-// Helper function to set cache-control headers
-const setCacheControlHeaders = (response: NextResponse) => {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  response.headers.set('Surrogate-Control', 'no-store');
-};
