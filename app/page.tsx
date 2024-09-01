@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PlusCircle, MinusCircle, Plane, Calendar, Users, Utensils, Clock } from "lucide-react"
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
@@ -13,6 +13,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { popularDestinations } from "./constants/destinations"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "../lib/utils"
+import ProgressBar, { useFakeProgress } from "./components/ProgressBar"
+import { useRouter } from 'next/navigation'
+import Link from 'next/link';
 
 interface Activity {
   time: string;
@@ -23,6 +26,12 @@ interface ItineraryDay {
   day: number;
   location: string;
   activities: Activity[];
+}
+
+interface SavedItinerary {
+  id: string;
+  destinations: string[];
+  num_days: number;
 }
 
 export default function TravelPlannerPage() {
@@ -40,6 +49,9 @@ export default function TravelPlannerPage() {
   const [value, setValue] = React.useState("")
   const [selectedDestinations, setSelectedDestinations] = useState<Set<string>>(new Set())
   const [travelerType, setTravelerType] = useState("")
+  const [savedItineraries, setSavedItineraries] = useState<SavedItinerary[]>([])
+  const router = useRouter()
+  const progress = useFakeProgress(loading)
 
   const addDestination = () => {
     setDestinations([...destinations, ""])
@@ -84,6 +96,8 @@ export default function TravelPlannerPage() {
         const data = await response.json()
         setItinerary(data.itinerary)
         setIsFallback(data.fallback || false)
+        // Refresh the list of saved itineraries after generating a new one
+        fetchSavedItineraries()
       } catch (error) {
         console.error('Error:', error)
       } finally {
@@ -91,6 +105,20 @@ export default function TravelPlannerPage() {
       }
     }
   }
+
+  const fetchSavedItineraries = async () => {
+    try {
+      const response = await fetch('/api/itineraries')
+      const data = await response.json()
+      setSavedItineraries(data.itineraries)
+    } catch (error) {
+      console.error('Error fetching saved itineraries:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchSavedItineraries()
+  }, [])
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground">
@@ -218,6 +246,15 @@ export default function TravelPlannerPage() {
           {loading ? "Generating Itinerary..." : "Create Itinerary"}
         </Button>
 
+        {loading && (
+          <div className="mt-4">
+            <ProgressBar isLoading={loading} progress={progress} />
+            <p className="text-sm text-center mt-2 text-muted-foreground">
+              {progress < 75 ? "Preparing your itinerary..." : "Almost there..."}
+            </p>
+          </div>
+        )}
+
         {isFallback && (
           <p className="text-destructive my-4">Note: This is a generic itinerary due to temporary AI service limitations.</p>
         )}
@@ -242,7 +279,27 @@ export default function TravelPlannerPage() {
             ))}
           </div>
         )}
-      </div>
+
+        {savedItineraries.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-2xl font-semibold mb-4">Saved Itineraries</h2>
+            <ul className="space-y-2">
+              {savedItineraries.map((itinerary) => (
+                <li key={itinerary.id}>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/itinerary/${itinerary.id}`)}
+                    className="w-full text-left"
+                  >
+                    {itinerary.destinations.join(', ')} - {itinerary.num_days} days
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+          </div>
     </div>
   )
 }
