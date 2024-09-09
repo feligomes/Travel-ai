@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Travel AI
 
-## Getting Started
+Travel AI streamlines the process of planning trips by leveraging AI to generate customized itineraries based on user preferences. It's designed to be user-friendly, performant, and easily maintainable. Working as a showcase of modern web development practices and technologies.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **AI-Powered Itinerary Creation**: Generates personalized travel plans based on user input using ChatGPT.
+- **User-friendly Interface**: Intuitive design for easy navigation and trip planning.
+- **Responsive Design**: Works seamlessly across various device sizes.
+- **Modern Tech Stack**: Utilizes Next.js, React, TypeScript, Tailwind CSS, and shadcn/ui.
+- **Database Integration**: Uses Supabase for data storage and management.
+- **Continuous Deployment**: Integrated with Vercel for automatic deployments.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demo
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The app is deployed and can be tested at: [Travel AI](https://travels-buddy.vercel.app/)
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Technologies Used
 
-## Learn More
+- **Next.js**: For server-side rendering and routing
+- **React**: UI library
+- **TypeScript**: For type-safe code
+- **Tailwind CSS**: Utility-first CSS framework
+- **shadcn/ui**: Reusable component library
+- **Supabase**: Backend-as-a-Service for database and authentication
+- **ChatGPT (via OpenAI API)**: For AI-powered itinerary generation
+- **Vercel**: Deployment and hosting
 
-To learn more about Next.js, take a look at the following resources:
+## Key Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Traveler Type Selection**: Users can specify their traveler type for more tailored recommendations.
+- **Preference Selection**: Options for food, culture, and nightlife preferences.
+- **AI-Generated Itineraries**: Creates custom travel plans based on user inputs using ChatGPT.
+- **Saved Itineraries**: Users can save and access their generated itineraries using Supabase.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Future Improvements
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- Enhance user authentication and profile management with Supabase
+- Expand AI capabilities for more detailed and varied itineraries
+- Add integration with travel booking services
+- Implement social sharing features for itineraries
+- Optimize ChatGPT prompts for more accurate and diverse travel suggestions

@@ -242,32 +242,25 @@ export default function TravelPlannerPage() {
           <div className="space-y-2">
             <Label>Travel Preferences</Label>
             <div className="flex space-x-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="food"
-                  checked={preferences.food}
-                  onCheckedChange={(checked) => setPreferences({...preferences, food: checked})}
-                />
-                <Label htmlFor="food">
-                  🍽️ Food
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="culture"
-                  checked={preferences.culture}
-                  onCheckedChange={(checked) => setPreferences({...preferences, culture: checked})}
-                />
-                <Label htmlFor="culture">🏛️ Culture</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="nightlife"
-                  checked={preferences.nightlife}
-                  onCheckedChange={(checked) => setPreferences({...preferences, nightlife: checked})}
-                />
-                <Label htmlFor="nightlife">🌙 Nightlife</Label>
-              </div>
+              {Object.entries(preferences).map(([key, value]) => (
+                <div key={key} className="flex items-center space-x-2">
+                  <Switch
+                    id={key}
+                    checked={value}
+                    onCheckedChange={(checked) => setPreferences(prev => ({...prev, [key]: checked}))}
+                  />
+                  <Label htmlFor={key} className="hidden sm:inline-block">
+                    {key === 'food' && '🍽️ Food'}
+                    {key === 'culture' && '🏛️ Culture'}
+                    {key === 'nightlife' && '🌙 Nightlife'}
+                  </Label>
+                  <Label htmlFor={key} className="sm:hidden">
+                    {key === 'food' && '🍽️'}
+                    {key === 'culture' && '🏛️'}
+                    {key === 'nightlife' && '🌙'}
+                  </Label>
+                </div>
+              ))}
             </div>
           </div>
         </div>
