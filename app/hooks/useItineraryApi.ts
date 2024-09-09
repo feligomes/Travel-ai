@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { SavedItinerary, ItineraryDay, Preferences } from '../types';
 
 export function useItineraryApi() {
-  const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const generateItinerary = async (
@@ -10,8 +12,8 @@ export function useItineraryApi() {
     numDays: string,
     preferences: Preferences,
     travelerType: string
-  ): Promise<{ itinerary: ItineraryDay[]; fallback: boolean; id: string }> => {
-    setLoading(true);
+  ): Promise<{ itinerary: ItineraryDay[]; id: string; timestamp: number }> => {
+    setIsGenerating(true);
     setError(null);
     try {
       const response = await fetch('/api/create-itinerary', {
@@ -22,16 +24,19 @@ export function useItineraryApi() {
           days: numDays,
           preferences,
           travelerType,
-          timestamp: Date.now(),
         }),
       });
       const data = await response.json();
-      return data;
+      if (response.ok) {
+        return data;
+      } else {
+        throw new Error(data.error || 'Failed to generate itinerary');
+      }
     } catch (err) {
       setError('Failed to generate itinerary');
       throw err;
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -40,7 +45,7 @@ export function useItineraryApi() {
     totalPages: number;
     currentPage: number;
   }> => {
-    setLoading(true);
+    setIsFetching(true);
     setError(null);
     try {
       const response = await fetch(`/api/itineraries?page=${page}`);
@@ -50,12 +55,13 @@ export function useItineraryApi() {
       setError('Failed to fetch saved itineraries');
       throw err;
     } finally {
-      setLoading(false);
+      setIsFetching(false);
+      setIsInitialLoad(false);
     }
   };
 
   const deleteItinerary = async (id: string): Promise<void> => {
-    setLoading(true);
+    setIsFetching(true);
     setError(null);
     try {
       const response = await fetch('/api/itineraries', {
@@ -70,7 +76,7 @@ export function useItineraryApi() {
       setError('Failed to delete itinerary');
       throw err;
     } finally {
-      setLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -78,7 +84,9 @@ export function useItineraryApi() {
     generateItinerary,
     fetchSavedItineraries,
     deleteItinerary,
-    loading,
+    isGenerating,
+    isFetching,
+    isInitialLoad,
     error,
   };
 }

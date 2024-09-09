@@ -6,7 +6,6 @@ import { Input } from "./components/ui/input";
 import { DestinationInput } from "./components/DestinationInput";
 import { TravelPreferences } from "./components/TravelPreferences";
 import { ItineraryGenerator } from "./components/ItineraryGenerator";
-import { ItineraryDisplay } from "./components/ItineraryDisplay";
 import { SavedItineraries } from "./components/SavedItineraries";
 import { useItineraryApi } from "./hooks/useItineraryApi";
 import { ItineraryDay, Preferences, SavedItinerary } from "./types";
@@ -23,25 +22,22 @@ export default function TravelPlannerPage() {
     nightlife: false,
   });
   const [itinerary, setItinerary] = useState<ItineraryDay[] | null>(null);
-  const [isFallback, setIsFallback] = useState(false);
   const [savedItineraries, setSavedItineraries] = useState<SavedItinerary[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const {
     generateItinerary,
     fetchSavedItineraries,
     deleteItinerary,
-    loading: apiLoading,
+    isGenerating,
+    isFetching,
+    isInitialLoad,
     error,
   } = useItineraryApi();
 
-  const [isGenerating, setIsGenerating] = useState(false);
-
   const handleGenerateItinerary = async () => {
     if (destinations[0] && numDays) {
-      setIsGenerating(true);
       try {
         const result = await generateItinerary(
           destinations,
@@ -52,24 +48,15 @@ export default function TravelPlannerPage() {
         console.log('Generated itinerary result:', result);
         
         setItinerary(result.itinerary);
-        setIsFallback(result.fallback);
         
-        // Wait for the itinerary to be saved and fetch the updated list
-        const updatedItineraries = await handleFetchSavedItineraries();
-        
-        // Get the most recently created itinerary (should be the first in the list)
-        const mostRecentItinerary = updatedItineraries[0];
-        
-        if (mostRecentItinerary && mostRecentItinerary.id) {
-          console.log('Redirecting to most recent itinerary:', `/itinerary/${mostRecentItinerary.id}`);
-          router.push(`/itinerary/${mostRecentItinerary.id}`);
+        if (result.id) {
+          console.log('Redirecting to new itinerary:', `/itinerary/${result.id}`);
+          router.push(`/itinerary/${result.id}`);
         } else {
-          console.error('No saved itineraries available for redirection');
+          console.error('No itinerary ID returned');
         }
       } catch (error) {
         console.error('Error generating itinerary:', error);
-      } finally {
-        setIsGenerating(false);
       }
     }
   };
@@ -80,11 +67,10 @@ export default function TravelPlannerPage() {
       setSavedItineraries(itineraries);
       setTotalPages(totalPages);
       setCurrentPage(currentPage);
-      setIsInitialLoad(false);
-      return itineraries; // Return the fetched itineraries
+      return itineraries;
     } catch (error) {
       console.error('Error fetching saved itineraries:', error);
-      return []; // Return an empty array in case of error
+      return [];
     }
   };
 
@@ -135,7 +121,7 @@ export default function TravelPlannerPage() {
           <h2 className="text-2xl font-semibold mb-4">Saved Itineraries</h2>
           <SavedItineraries
             savedItineraries={savedItineraries}
-            isLoading={isInitialLoad}
+            isLoading={isFetching}
             isInitialLoad={isInitialLoad}
             currentPage={currentPage}
             totalPages={totalPages}
@@ -144,6 +130,7 @@ export default function TravelPlannerPage() {
           />
         </div>
         
+        {error && <p className="text-red-500 mt-4">{error}</p>}
       </div>
     </div>
   )

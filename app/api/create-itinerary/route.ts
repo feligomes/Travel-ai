@@ -41,9 +41,9 @@ const getItineraryFromOpenAI = async (prompt: string) => {
   return completion.choices[0].message.content;
 };
 
-// Function to save the itinerary to Supabase
+// Update the saveItineraryToSupabase function
 const saveItineraryToSupabase = async (destinations: string[], days: number, preferences: Record<string, boolean>, travelerType: string, itinerary: any) => {
-  return await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("itineraries")
     .insert({
       destinations,
@@ -52,7 +52,11 @@ const saveItineraryToSupabase = async (destinations: string[], days: number, pre
       traveler_type: travelerType,
       days: itinerary,
     })
-    .select();
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 };
 
 // Main handler function
@@ -76,14 +80,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to generate valid itinerary", rawResponse }, { status: 500 });
     }
 
-    const { data: savedItinerary, error: saveError } = await saveItineraryToSupabase(destinations, parseInt(days), preferences, travelerType, parsedItinerary);
+    const savedItinerary = await saveItineraryToSupabase(destinations, parseInt(days), preferences, travelerType, parsedItinerary);
 
-    if (saveError) {
-      console.error("Error saving to Supabase:", saveError);
-      return NextResponse.json({ itinerary: parsedItinerary, saveError: "Failed to save itinerary to database" }, { status: 500 });
+    if (!savedItinerary) {
+      return NextResponse.json({ error: "Failed to save itinerary to database" }, { status: 500 });
     }
 
-    return NextResponse.json({ itinerary: parsedItinerary, timestamp });
+    return NextResponse.json({ 
+      itinerary: parsedItinerary, 
+      id: savedItinerary.id,
+      timestamp 
+    });
   } catch (error: any) {
     console.error("Error processing request:", error.message);
     return NextResponse.json({ error: "Failed to generate itinerary", details: error.message }, { status: 500 });
