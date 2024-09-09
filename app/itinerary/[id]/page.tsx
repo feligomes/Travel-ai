@@ -70,7 +70,7 @@ export default function ItineraryPage({ params }: { params: { id: string } }) {
               <ul className="space-y-2">
                 {day.activities.map((activity, index) => (
                   <li key={index} className="flex items-start">
-                    <Clock className="mr-2 h-5 w-5 text-primary" />
+                    <Clock className="mr-2 h-5 w-5 text-primary flex-shrink-0" style={{ width: '20px', height: '20px', marginTop : "2px" }} />
                     <div>
                       <span className="font-semibold">{activity.time}</span> - {activity.description}
                     </div>

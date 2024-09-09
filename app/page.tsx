@@ -16,6 +16,7 @@ import { cn } from "../lib/utils"
 import ProgressBar, { useFakeProgress } from "./components/ProgressBar"
 import { useRouter } from 'next/navigation'
 import Link from 'next/link';
+import { ItinerarySkeleton } from "./components/ItinerarySkeleton"
 
 interface Activity {
   time: string;
@@ -50,8 +51,11 @@ export default function TravelPlannerPage() {
   const [selectedDestinations, setSelectedDestinations] = useState<Set<string>>(new Set())
   const [travelerType, setTravelerType] = useState("")
   const [savedItineraries, setSavedItineraries] = useState<SavedItinerary[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const router = useRouter()
   const progress = useFakeProgress(loading)
+  const [isLoadingItineraries, setIsLoadingItineraries] = useState(true)
 
   const addDestination = () => {
     setDestinations([...destinations, ""])
@@ -107,13 +111,18 @@ export default function TravelPlannerPage() {
     }
   }
 
-  const fetchSavedItineraries = async () => {
+  const fetchSavedItineraries = async (page = 1) => {
+    setIsLoadingItineraries(true)
     try {
-      const response = await fetch('/api/itineraries')
+      const response = await fetch(`/api/itineraries?page=${page}`)
       const data = await response.json()
       setSavedItineraries(data.itineraries)
+      setTotalPages(data.totalPages)
+      setCurrentPage(data.currentPage)
     } catch (error) {
       console.error('Error fetching saved itineraries:', error)
+    } finally {
+      setIsLoadingItineraries(false)
     }
   }
 
@@ -127,10 +136,8 @@ export default function TravelPlannerPage() {
         body: JSON.stringify({ id }),
       });
       if (response.ok) {
-        // Remove the deleted itinerary from the state
-        setSavedItineraries(prevItineraries => 
-          prevItineraries.filter(itinerary => itinerary.id !== id)
-        );
+        // Refetch the current page after successful deletion
+        await fetchSavedItineraries(currentPage);
       } else {
         console.error('Failed to delete itinerary');
       }
@@ -291,9 +298,10 @@ export default function TravelPlannerPage() {
                 <ul className="space-y-2">
                   {day.activities.map((activity, index) => (
                     <li key={index} className="flex items-start">
-                      <Clock className="mr-2 h-5 w-5 text-primary" />
+                      <Clock className="mr-2 h-5 w-5 text-primary flex-shrink-0" />
                       <div>
-                        <span className="font-semibold">{activity.time}</span> - {activity.description}
+                        <span className="font-semibold inline-block w-16">{activity.time}</span>
+                        <span>{activity.description}</span>
                       </div>
                     </li>
                   ))}
@@ -303,16 +311,20 @@ export default function TravelPlannerPage() {
           </div>
         )}
 
-        {savedItineraries.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-2xl font-semibold mb-4">Saved Itineraries</h2>
-            <ul className="space-y-2">
+        <div className="mt-6">
+          <h2 className="text-2xl font-semibold mb-4">Saved Itineraries</h2>
+          {isLoadingItineraries ? (
+            <ItinerarySkeleton />
+          ) : savedItineraries.length > 0 ? (
+            <>
+              <ul className="space-y-2">
               {savedItineraries.map((itinerary) => (
                 <li key={itinerary.id} className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     onClick={() => router.push(`/itinerary/${itinerary.id}`)}
                     className="flex-grow text-left"
+                    style={{justifyContent: 'left'}}
                   >
                     {itinerary.destinations.join(', ')} - {itinerary.num_days} days
                   </Button>
@@ -327,10 +339,28 @@ export default function TravelPlannerPage() {
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+              <div className="mt-4 flex justify-between items-center">
+                <Button
+                  onClick={() => fetchSavedItineraries(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoadingItineraries}
+                >
+                  Previous
+                </Button>
+                <span>Page {currentPage} of {totalPages}</span>
+                <Button
+                  onClick={() => fetchSavedItineraries(currentPage + 1)}
+                  disabled={currentPage === totalPages || isLoadingItineraries}
+                >
+                  Next
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p>No saved itineraries found.</p>
+          )}
+        </div>
         
-          </div>
+      </div>
     </div>
   )
 }

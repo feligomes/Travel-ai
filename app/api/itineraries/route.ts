@@ -10,14 +10,29 @@ const supabaseAdmin = createClient(
 
 export async function GET(req: NextRequest) {
   try {
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const pageSize = 5;
+
+    // Fetch total count
+    const { count } = await supabaseAdmin
+      .from('itineraries')
+      .select('*', { count: 'exact', head: true });
+
+    // Fetch paginated data
     const { data, error } = await supabaseAdmin
       .from('itineraries')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
 
     if (error) throw error;
 
-    return NextResponse.json({ itineraries: data });
+    return NextResponse.json({
+      itineraries: data,
+      totalPages: Math.ceil((count || 0) / pageSize),
+      currentPage: page
+    });
   } catch (error) {
     console.error("Error fetching itineraries:", error);
     return NextResponse.json(
