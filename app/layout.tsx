@@ -1,8 +1,16 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import ThemeRegistry from './components/ThemeRegistry'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Travel Buddy",
+  description: "Your friendly travel companion",
+  icons: {
+    icon: [{ url: "/favicon.ico" }],
+  },
+};
 
 export default function RootLayout({
   children,
