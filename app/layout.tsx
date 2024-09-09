@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Travel Buddy",
   description: "Your friendly travel companion",
   icons: {
-    icon: [{ url: "/favicon.ico" }],
+    icon: [{ url: "/favicon.svg" }],
   },
 };
 
